@@ -1,0 +1,9 @@
+.idea/**
+__pycache__/**
+cookie/**
+images/**
+img/**
+qzone-posts/**
+qq_init.py
+doc/**
+*.log
