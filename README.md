@@ -15,7 +15,7 @@
 
 ### 运行程序
 
-1. 把这个 Repository（代码仓库） clone 到你的电脑上。在命令行运行
+1. 把这个 Repository（代码仓库）clone 到你的电脑上。在命令行运行
     ```
     git clone --depth 1 git@github.com:zhenalexfan/qzone-scraper.git
     ```
