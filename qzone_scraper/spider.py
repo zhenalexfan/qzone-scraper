@@ -145,6 +145,8 @@ class QzoneSpider:
                 page_posts = self.get_posts_within_single_page(
                     start=pos, num=limit_per_page, replynum=limit_of_reply)
             posts.extend(page_posts)
+        if self.download_pics:
+            self.image_downloader.write_image_history_map()
         return posts
 
 

@@ -23,9 +23,11 @@ def check_cwd():
 
 def clear():
     check_cwd()
+    if not (os.path.exists('log/') or os.path.exists('out/')):
+        return
     confirm = input(
-        'Are you sure you want to clear all the outputs, logs, and configs (log/*, out/*)? [Y/N]')
-    if (confirm != 'Y'):
+        'Are you sure you want to clear all the outputs, logs, and configs (log/*, out/*)? [Y/N]\n')
+    if (confirm.upper() != 'Y'):
         return
     if not os.path.exists('log/'):
         os.makedirs('log/')
@@ -35,10 +37,9 @@ def clear():
     os.system('rm -r out/*')
 
 
-def scrape(qq):
-    spider = QzoneSpider(qq_id=qq)
-    # spider.get_posts_within_single_page(start=0, num=20)
-    posts = spider.get_posts(num_posts=1117)
+def scrape(qq, num_posts, download_pics=False):
+    spider = QzoneSpider(qq_id=qq, download_pics=download_pics)
+    posts = spider.get_posts(num_posts=num_posts)
     Writer.write_shuoshuo_posts(posts)
 
 
@@ -61,6 +62,10 @@ def parse_from_log_response():
 
 if __name__ == "__main__":
     check_cwd()
-    # clear()
-    # scrape(qq='565261370')
-    parse_from_log_response()
+    clear()
+    qq = input('What\'s your QQ number?\n')
+    _num_of_posts = input('How many Shuoshuos do you have in total?\n')
+    num_of_posts = int(_num_of_posts)
+    _download_pics = input('Do you want to download pictures in your Shuoshuos?\n')
+    dl_pics = _download_pics.upper().startswith('Y')
+    scrape(qq=qq, num_posts=num_of_posts, download_pics=dl_pics)
