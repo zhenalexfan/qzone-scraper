@@ -6,11 +6,12 @@ import os
 import json
 import math
 from .parser import QzoneShuoshuoPageParser
-from .io import Writer, Reader, logger
+from .models import *
+from .io import Writer, Reader, ImageDownloader, logger
 
 
 class QzoneSpider:
-    def __init__(self, qq_id):
+    def __init__(self, qq_id, download_pics=False):
         logger.info(f'Initiating with QQ [{qq_id}]')
         chrome_options = webdriver.ChromeOptions()
         # chrome_options.add_argument('--headless')
@@ -26,6 +27,8 @@ class QzoneSpider:
             'connection': 'keep-alive'
         }
         self.req = requests.Session()
+        self.download_pics = download_pics
+        self.image_downloader = ImageDownloader()
         self.qq_id = qq_id
         self.qq_password = None
         self.cookies = None
@@ -87,7 +90,7 @@ class QzoneSpider:
         self.g_tk = h & 2147483647
         return self.g_tk
 
-    def get_posts_within_single_page(self, start=0, num=20, replynum=100):
+    def get_posts_within_single_page(self, start=0, num=20, replynum=100,):
         """Get a list of Posts in a page that has an offset of {start} and a limit of {num}
         """
         url = 'https://user.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msglist_v6?'
@@ -117,23 +120,31 @@ class QzoneSpider:
         Writer.log_shuoshuo_reponse(
             data=posts_body, start=start, end=start + num)
         # parse response body
-        posts = QzoneShuoshuoPageParser().parse(posts_body)
-        return posts
+        try:
+            page: QzoneShuoshuoPage = QzoneShuoshuoPageParser().parse(posts_body)
+            shuoshuo_list = page.shuoshuo_list
+            if self.download_pics:
+                self.image_downloader.download_pictures_in_shuoshuo_list(shuoshuo_list=shuoshuo_list)
+            return shuoshuo_list
+        except:
+            logger.error(f'Error parsing posts ({start}–{start + num})')
+            return list()
 
-    def get_posts(self, num_posts):
+    def get_posts(self, num_posts,):
         limit_per_page = 20
         limit_of_reply = 100
         posts = []
         num_pages = int(math.ceil(num_posts / limit_per_page))
         for pos in [limit_per_page * i for i in range(num_pages)]:
             logger.info(f'Scraping posts ({pos}—{pos + limit_per_page})...')
-            page_posts = self.get_posts_within_single_page(
-                start=pos, num=limit_per_page, replynum=limit_of_reply)
+            try:
+                page_posts = self.get_posts_within_single_page(
+                    start=pos, num=limit_per_page, replynum=limit_of_reply)
+            except ConnectionError:
+                self._log_in()
+                page_posts = self.get_posts_within_single_page(
+                    start=pos, num=limit_per_page, replynum=limit_of_reply)
             posts.extend(page_posts)
         return posts
 
 
-if __name__ == '__main__':
-    spider = QzoneSpider(qq_id='565261370')
-    spider.get_posts_within_single_page(start=0, num=20)
-    # spider.get_posts(num_posts=1117)

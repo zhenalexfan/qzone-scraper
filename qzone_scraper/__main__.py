@@ -1,67 +1,66 @@
 from .parser import QzoneShuoshuoPageParser
 from .encoder import Encoder
 from .spider import QzoneSpider
-from .io import Writer, Reader
+from .io import Writer, Reader, ImageDownloader, logger
 from .models import *
+import os
 import json
 
-dummyUser = QzoneUser(qq=123, name='Alex')
+NAME = 'qzone-scraper'
 
-dummyPicture = QzonePicture(id='pic1', height=600, width=800, smallurl='x.jpg', url_list=['x1.jpg', 'x2.jpg', 'x3.jpg'])
 
-dummyShuoshuoList = [
-    QzoneShuoshuo(
-        id=1,
-        owner=dummyUser,
-        time=123,
-        content='content',
-        pictures=[dummyPicture],
-        source='iPhone XR',
-        location='Los Angeles',
-        visitors=None,
-        likers=[dummyUser],
-        comments=None
-    )
-]
+def check_cwd():
+    cwd = os.getcwd()
+    try:
+        assert os.path.basename(cwd) == NAME
+    except Exception as e:
+        logger.error(
+            f'Current working directory is not `{NAME}`. Please go to the root path of `{NAME}/`')
+        logger.debug(f'cwd = {cwd}')
+        logger.debug(f'basename(cwd) = {os.path.basename(cwd)}')
+        raise e
 
 
 def clear():
-    import os
-    os.system('rm log/response/*')
-    os.system('rm out/config.json')
-
-def test_io():
-    Writer.write_file('log/response/1.txt', 'blah blah')
-    Writer.log_shuoshuo_reponse('blah blah', 1, 10)
-
-
-def test_encoder():
-    # print(dummyShuoshuoList[0])
-    # print(dummyShuoshuoList[0].__dict__.items())
-    data_dict = Encoder.obj2dict(dummyShuoshuoList)
-    assert isinstance(data_dict, dict) or isinstance(data_dict, list)
-    print(data_dict)
+    check_cwd()
+    confirm = input(
+        'Are you sure you want to clear all the outputs, logs, and configs (log/*, out/*)? [Y/N]')
+    if (confirm != 'Y'):
+        return
+    if not os.path.exists('log/'):
+        os.makedirs('log/')
+    if not os.path.exists('out/'):
+        os.makedirs('out/')
+    os.system('rm -r log/*')
+    os.system('rm -r out/*')
 
 
-def test_parser():
-    with open('log/pos-0', 'r') as f:
-        body = f.readline()
-    # print(body)
+def scrape(qq):
+    spider = QzoneSpider(qq_id=qq)
+    # spider.get_posts_within_single_page(start=0, num=20)
+    posts = spider.get_posts(num_posts=1117)
+    Writer.write_shuoshuo_posts(posts)
+
+
+def parse_from_log_response():
     parser = QzoneShuoshuoPageParser()
-    page = parser.parse(body)
-    shuoshuo_dict = Encoder.obj2dict(page.shuoshuo_list)
-    Writer.write_shuoshuo_posts(shuoshuo_dict)
-
-
-def test_spider_single_page():
-    spider = QzoneSpider(qq_id='565261370')
-    posts = spider.get_posts_within_single_page(start=0, num=20)
-    print(posts)
-
+    posts = []
+    dir = 'log/response/'
+    logger.info(f'Start parse shuoshuo from {dir} files')
+    for filename in os.listdir(dir):
+        data = Reader.read_shuoshuo_response_log(os.path.join(dir, filename))
+        page_posts = parser.parse(data).shuoshuo_list
+        posts.extend(page_posts)
+    Writer.write_shuoshuo_posts(posts)
+    # download images
+    img_downloader = ImageDownloader()
+    logger.info(f'Start downloading images from {len(posts)} posts')
+    img_downloader.download_pictures_in_shuoshuo_list(posts)
+    img_downloader.write_image_history_map()
 
 
 if __name__ == "__main__":
-    # test_io()
-    # test_spider_single_page()
-    # test_encoder()
-    test_parser()
+    check_cwd()
+    # clear()
+    # scrape(qq='565261370')
+    parse_from_log_response()

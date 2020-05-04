@@ -22,11 +22,11 @@ class QzonePictureParser(Parser):
     def parse_json(self, json_dict):
         picture = QzonePicture()
         picture.id = json_dict['pic_id']
-        picture.height = json_dict['height']
-        picture.width = json_dict['width']
-        picture.smallurl = json_dict['smallurl']
-        picture.url_list = [json_dict['url1'],
-                            json_dict['url2'], json_dict['url3']]
+        picture.height = json_dict.get('height')
+        picture.width = json_dict.get('width')
+        picture.smallurl = json_dict.get('smallurl')
+        picture.url_list = [json_dict.get('url1'),
+                            json_dict.get('url2'), json_dict.get('url3')]
         return picture
 
 

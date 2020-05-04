@@ -1,6 +1,4 @@
 
-import json
-
 class Encoder():
     @staticmethod
     def obj2dict(obj):
@@ -18,3 +16,9 @@ class Encoder():
             element = Encoder.obj2dict(val)
             result[key] = element
         return result
+
+    @staticmethod
+    def dict2obj(dict_data, dtype):
+        obj = dtype()
+        obj.__dict__ = dict_data
+        return obj
